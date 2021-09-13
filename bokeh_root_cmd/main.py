@@ -51,14 +51,20 @@ class BokehServer:
         """
         if hasattr(self, 'html_file'):
             if self.html_file is None:
-                self.html_file = tempfile.NamedTemporaryFile("wt")
+                self.html_file = tempfile.NamedTemporaryFile("wt", suffix='.html') # open('/home/balast/CodingProjects/local_cds_jupyterhub/my_index_file.html', 'wt') # tempfile.NamedTemporaryFile("wt")
+                import os
+                os.chmod(self.html_file.name, 0o777)
                 with open(self._get_default_index_html(), "rt") as f:
                     for r in f.readlines():
                         r = re.sub(r'\{\{\s*prefix\s*\}\}', self.prefix, r)
                         self.html_file.write(r)
                 self.html_file.flush()
+            logger.info(f'self.html_file.name {self.html_file.name}')
+            # # /tmp/tmpvbxda3_i/
             return self.html_file.name
-        return self._get_default_index_html()
+        a = self._get_default_index_html()
+        logger.info(f'a {a}') # /home/balast/.conda/envs/cds/lib/python3.9/site-packages/panel/io/../_templates/index.html
+        return a
 
     @staticmethod
     def _get_server_class():
@@ -110,11 +116,20 @@ class BokehServer:
         apps = {}
         
         for cmd in command:
+            logger.info(f"""=============
+            =============
+            =============
+            HEY DUDE
+            =============
+            =============
+            =============""")
+            logger.info(cmd)
             if cls._is_single_app(cmd):
                 cmds = [cmd]
             else:
                 cmd_path = pathlib.Path(cmd)
                 cmds = list(cmd_path.glob("*.ipynb")) + list(cmd_path.glob("*.py"))
+                logger.info(cmds)
 
             for singlecmd in cmds:
                 application = cls._make_app(singlecmd, debug)
@@ -129,6 +144,18 @@ class BokehServer:
             server_kwargs["allow_websocket_origin"] = list(allow_websocket_origin)
         if not is_single_app:
             index_html = self._get_index_html()
+            # delattr(self, 'html_file')
+            logger.info('''
+            *****************************************************************
+            *****************************************************************
+            *****************************************************************
+            *****************************************************************
+            *****************************************************************
+            *****************************************************************
+            *****************************************************************
+            *****************************************************************
+            *****************************************************************
+            ''')
             logger.debug("Using HTML template %s", index_html)
             server_kwargs.update(
                 {"use_index": True, "redirect_root": True, "index": index_html}
@@ -137,9 +164,9 @@ class BokehServer:
 
     def run(self, port, ip, debug, allow_websocket_origin, prefix, command):
         logger.info("Starting %s", type(self).__name__)
-        if debug:
+        if True: #debug:
             root_logger.setLevel(logging.DEBUG)
-
+        logger.info('HEY DUDE --------------------------------------------------------------------------------------------')
         logger.debug("ip = %s", ip)
         logger.debug("port = %s", port)
         logger.debug("debug = %s", debug)
@@ -148,17 +175,31 @@ class BokehServer:
         logger.debug("command = %s", command)
 
         applications = self._get_applications(command, debug)
+        logger.info(f'''
+        
+        --------------------------------------------------------------------------------------------
+        --------------------------------------------------------------------------------------------
+        --------------------------------------------------------------------------------------------
+        applications {applications}
+        --------------------------------------------------------------------------------------------
+        --------------------------------------------------------------------------------------------
+        --------------------------------------------------------------------------------------------
+        
+        ''')
         applications["/ready-check"] = create_ready_app()
         logger.debug("applications = %s", list(applications.keys()))
-
-        server_kwargs = self._get_server_kwargs(port, ip, allow_websocket_origin, len(applications) <= 2)
+        is_single_app = len(applications) <= 2
+        server_kwargs = self._get_server_kwargs(port, ip, allow_websocket_origin, is_single_app=is_single_app)
         if debug:
             server_kwargs["log_level"]="debug"
         server_kwargs["log_format"]=FORMAT
-        logger.debug("server_kwargs = %s", server_kwargs)
-
+        # logger.debug("server_kwargs = %s", server_kwargs)
+        logger.info(f'server_kwargs: {server_kwargs}')
         server = self._get_server_class()(applications, **server_kwargs)
-
+        logger.info(f'server: {dir(server)}')
+        import dill as pickle
+        # home/balast/CodingProjects/local_cds_jupyterhub/
+        # pickle.dump(server, open("server-broken.p", "wb"))
         server.run_until_shutdown()
 
 
@@ -172,7 +213,7 @@ class PanelServer(BokehServer):
 
     def _get_default_index_html(self):
         from panel.io.server import INDEX_HTML as _PANEL_INDEX_HTML
-
+        logger.info(f'_PANEL_INDEX_HTML {_PANEL_INDEX_HTML}')
         return _PANEL_INDEX_HTML
 
 
